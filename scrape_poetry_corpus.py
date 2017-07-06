@@ -128,47 +128,46 @@ base_url = 'http://people.ucalgary.ca/~mmcgilli/ASPR'
 inprogress_poem_links = soup.findAll("a", { "class" : ("here") }, href=True)
 
 for i in range(len(inprogress_poem_links)):
-
-# poem main page
-poem_main_url = base_url + "/" + inprogress_poem_links[i]['href'].split("/")[-1]
-poem_main_page = requests.get(poem_main_url)
-poem_main_soup = BeautifulSoup(poem_main_page.content, 'html.parser')
-# get poem src from frame
-frames = poem_main_soup.find_all('frame')
-text_src = frames[0].get('src')
-poem_text_url = base_url + '/' + text_src
-# get raw poem text
-poem_text_page = requests.get(poem_text_url)
-poem_text_soup = BeautifulSoup(poem_text_page.content, 'html.parser')
-poem_title = poem_text_soup.findAll('title')[0].get_text()
-poem_title = clean_poem_title(poem_title)
-print(str(i)+": "+poem_title+'\n')
-poem_text_raw = poem_text_soup.findAll('dd')
-full_poem_text = ''
-for h in range(len(poem_text_raw)):
-	stanza = poem_text_raw[h].findAll(("a","br"))
-	last_break = False
-	for j in range(len(stanza)):
-		if stanza[j].name=="br":
-			token = "\n"
-			last_break = True
-			full_poem_text += token 
-		else:
-			token = stanza[j].get_text()
-			token = clean_poetic_token(token)
-			if last_break == True:
-				full_poem_text += token
+	# poem main page
+	poem_main_url = base_url + "/" + inprogress_poem_links[i]['href'].split("/")[-1]
+	poem_main_page = requests.get(poem_main_url)
+	poem_main_soup = BeautifulSoup(poem_main_page.content, 'html.parser')
+	# get poem src from frame
+	frames = poem_main_soup.find_all('frame')
+	text_src = frames[0].get('src')
+	poem_text_url = base_url + '/' + text_src
+	# get raw poem text
+	poem_text_page = requests.get(poem_text_url)
+	poem_text_soup = BeautifulSoup(poem_text_page.content, 'html.parser')
+	poem_title = poem_text_soup.findAll('title')[0].get_text()
+	poem_title = clean_poem_title(poem_title)
+	print(str(i)+": "+poem_title+'\n')
+	poem_text_raw = poem_text_soup.findAll('dd')
+	full_poem_text = ''
+	for h in range(len(poem_text_raw)):
+		stanza = poem_text_raw[h].findAll(("a","br"))
+		last_break = False
+		for j in range(len(stanza)):
+			if stanza[j].name=="br":
+				token = "\n"
+				last_break = True
+				full_poem_text += token 
 			else:
-				full_poem_text += ' ' + token
-			#
-			last_break = False
-# write to local file
-full_poem_text = re.sub(' +', ' ', full_poem_text) 
-# create local file and write poem to it
-local_poem_file = local_corpus_directory+'/'+poem_title+'.txt'
-os.system('touch '+local_poem_file)
-f = open(local_poem_file, 'w')
-f.write(full_poem_text)  
-f.close()
+				token = stanza[j].get_text()
+				token = clean_poetic_token(token)
+				if last_break == True:
+					full_poem_text += token
+				else:
+					full_poem_text += ' ' + token
+				#
+				last_break = False
+	# write to local file
+	full_poem_text = re.sub(' +', ' ', full_poem_text) 
+	# create local file and write poem to it
+	local_poem_file = local_corpus_directory+'/'+poem_title+'.txt'
+	os.system('touch '+local_poem_file)
+	f = open(local_poem_file, 'w')
+	f.write(full_poem_text)  
+	f.close()
 
 
