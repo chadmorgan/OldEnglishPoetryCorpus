@@ -1,3 +1,5 @@
+import re
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -6,13 +8,14 @@ from bs4 import BeautifulSoup
 # by Murray McGillivray from the University of Calgary English department
 # -----------------------------------------------------------------------------
 
-def clean_poetic_stanza(poetic_stanza):
-	poetic_stanza = str.lower(poetic_stanza)
-	# normalize: v -> u, k -> c
-	poetic_stanza = re.sub('v', 'u', poetic_stanza)
-	poetic_stanza = re.sub('k', 'c', poetic_stanza)
+def clean_poetic_token(poetic_token):
+	poetic_token = str.lower(poetic_token)
 	# remove anything not in the OE character set
-	poetic_stanza = re.sub('[^a-yþæð\s]', '', poetic_stanza)
+	poetic_token = re.sub('[^0-9a-zþæð\s]', '', poetic_token)
+	return(poetic_token)
+
+def clean_poetic_stanza(poetic_stanza):
+	poetic_stanza = clean_poetic_token(poetic_stanza)
 	# remove \xa0
 	poetic_stanza = re.sub('\xa0', '', poetic_stanza) 
 	# remove extra spaces
@@ -34,7 +37,7 @@ def clean_poem_title(poem_title):
 # local directory to deposit poem files
 local_corpus_directory = '/Users/ChadMorgan/Documents/old_english/OldEnglishPoetryCorpus/scraped_corpus'
 
-# get main list of poems housed in Labyrinth Library at Georgetown University
+# --- Labyrinth Library hosted poems ----------------------------------------- #
 poemdirectory_url = 'http://people.ucalgary.ca/~mmcgilli/OEPoetry/oepoems.htm'
 page = requests.get(poemdirectory_url)
 soup = BeautifulSoup(page.content, 'html.parser')
@@ -67,5 +70,105 @@ for i in range(len(poem_links)):
 	f = open(local_poem_file, 'w')
 	f.write(full_poem_text)  
 	f.close()
+
+# --- OCOEP hosted edition --------------------------------------------------- #
+base_url = 'http://people.ucalgary.ca/~mmcgilli/OEPoetry'
+hosted_poem_links = soup.findAll("a", { "class" : ("done") }, href=True)
+
+
+for i in range(len(hosted_poem_links)):
+	# skipped poems
+	if i == 5:
+		continue
+	# poem main page
+	poem_main_url = base_url + "/" + hosted_poem_links[i]['href'].split("/")[-1]
+	poem_main_page = requests.get(poem_main_url)
+	poem_main_soup = BeautifulSoup(poem_main_page.content, 'html.parser')
+	# get poem src from frame
+	frames = poem_main_soup.find_all('frame')
+	text_src = frames[0].get('src')
+	poem_text_url = base_url + '/' + text_src
+	# get raw poem text
+	poem_text_page = requests.get(poem_text_url)
+	poem_text_soup = BeautifulSoup(poem_text_page.content, 'html.parser')
+	poem_title = poem_text_soup.findAll('title')[0].get_text()
+	poem_title = clean_poem_title(poem_title)
+	print(str(i)+": "+poem_title+'\n')
+	poem_text_raw = poem_text_soup.findAll('dd')
+	for h in range(len(poem_text_raw)):
+		stanza = poem_text_raw[h].findAll(("a","br"))
+		last_break = False
+		for j in range(len(stanza)):
+			if stanza[j].name=="br":
+				token = "\n"
+				last_break = True
+				full_poem_text += token 
+			else:
+				token = stanza[j].get_text()
+				token = clean_poetic_token(token)
+				if h==0 & j==0:
+					full_poem_text = token
+				elif last_break == True:
+					full_poem_text += token
+				else:
+					full_poem_text += ' ' + token
+				#
+				last_break = False
+	# write to local file
+	full_poem_text = re.sub(' +', ' ', full_poem_text) 
+	# create local file and write poem to it
+	local_poem_file = local_corpus_directory+'/'+poem_title+'.txt'
+	os.system('touch '+local_poem_file)
+	f = open(local_poem_file, 'w')
+	f.write(full_poem_text)  
+	f.close()
+
+# --- OCOEP edition in progress ---------------------------------------------- #
+base_url = 'http://people.ucalgary.ca/~mmcgilli/ASPR'
+inprogress_poem_links = soup.findAll("a", { "class" : ("here") }, href=True)
+
+for i in range(len(inprogress_poem_links)):
+
+# poem main page
+poem_main_url = base_url + "/" + inprogress_poem_links[i]['href'].split("/")[-1]
+poem_main_page = requests.get(poem_main_url)
+poem_main_soup = BeautifulSoup(poem_main_page.content, 'html.parser')
+# get poem src from frame
+frames = poem_main_soup.find_all('frame')
+text_src = frames[0].get('src')
+poem_text_url = base_url + '/' + text_src
+# get raw poem text
+poem_text_page = requests.get(poem_text_url)
+poem_text_soup = BeautifulSoup(poem_text_page.content, 'html.parser')
+poem_title = poem_text_soup.findAll('title')[0].get_text()
+poem_title = clean_poem_title(poem_title)
+print(str(i)+": "+poem_title+'\n')
+poem_text_raw = poem_text_soup.findAll('dd')
+full_poem_text = ''
+for h in range(len(poem_text_raw)):
+	stanza = poem_text_raw[h].findAll(("a","br"))
+	last_break = False
+	for j in range(len(stanza)):
+		if stanza[j].name=="br":
+			token = "\n"
+			last_break = True
+			full_poem_text += token 
+		else:
+			token = stanza[j].get_text()
+			token = clean_poetic_token(token)
+			if last_break == True:
+				full_poem_text += token
+			else:
+				full_poem_text += ' ' + token
+			#
+			last_break = False
+# write to local file
+full_poem_text = re.sub(' +', ' ', full_poem_text) 
+# create local file and write poem to it
+local_poem_file = local_corpus_directory+'/'+poem_title+'.txt'
+os.system('touch '+local_poem_file)
+f = open(local_poem_file, 'w')
+f.write(full_poem_text)  
+f.close()
 
 
