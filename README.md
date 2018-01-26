@@ -1,5 +1,5 @@
 # OldEnglishPoetryCorpus
-Fun with an Old English poetry corpus
+NLP experiments with Old English corpora (plain text poetry corpus, parsed corpus of poetry, complete DOE corpus)
 
 * scrape_poetry_corpus.py - scraper to get Old English poetry corpus from Murray McGillivray's publicly available site
 * corpus_character_count.py - frequency analysis per character in scraped OE poetry corpus
